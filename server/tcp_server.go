@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
     "bufio"
@@ -7,10 +7,12 @@ import (
     "net"
     "strings"
     "sync"
-)
+	"github.com/Talal52/go-chat/config"
+	)
 
 var clients = make(map[net.Conn]string) // connection -> username
 var clientsMutex sync.Mutex
+var db = config.ConnectDB() // Initialize DB connection
 
 func StartTCPServer() {
     listener, err := net.Listen("tcp", ":9000")
@@ -64,6 +66,13 @@ func handleConnection(conn net.Conn) {
     clientsMutex.Unlock()
 
     broadcast(fmt.Sprintf("%s left the chat\n", name), conn)
+}
+
+func SaveMessage(username, message string) {
+    _, err := db.Exec("INSERT INTO messages (username, message) VALUES ($1, $2)", username, message)
+    if err != nil {
+        log.Println("Error saving message:", err)
+    }
 }
 
 func broadcast(message string, sender net.Conn) {
