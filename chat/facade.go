@@ -3,7 +3,7 @@ package chat
 import (
     "go.mongodb.org/mongo-driver/mongo"
     "github.com/Talal52/go-chat/chat/api"
-    "github.com/Talal52/go-chat/chat/db"
+    chat_db "github.com/Talal52/go-chat/chat/db"
     "github.com/Talal52/go-chat/chat/service"
 )
 
@@ -14,7 +14,7 @@ type ChatFacade struct {
 
 func NewChatFacade(db *mongo.Database) *ChatFacade {
     // Initialize repository
-    repo := db.NewChatRepository(db)
+    repo := chat_db.NewChatRepository(db)
 
     // Initialize service
     svc := service.NewChatService(repo)

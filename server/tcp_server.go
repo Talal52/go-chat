@@ -61,7 +61,7 @@ func handleConnection(conn net.Conn, chatService *service.ChatService) {
 
         // Save the message using the service
         err = chatService.SaveMessage(models.Message{
-            Username:  name,
+            Sender:    name,
             Content:   msg,
             CreatedAt: time.Now(),
         })

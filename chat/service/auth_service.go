@@ -2,21 +2,21 @@ package service
 
 import (
     "errors"
-    "github.com/Talal52/go-chat/chat/db"
-    "github.com/Talal52/go-chat/chat/models"
-    "golang.org/x/crypto/bcrypt"
     "time"
 
+    "github.com/Talal52/go-chat/chat/db"
+    "github.com/Talal52/go-chat/chat/models"
     "github.com/golang-jwt/jwt"
+    "golang.org/x/crypto/bcrypt"
 )
 
 var secretKey = []byte("secret-key")
 
 type AuthService struct {
-    Repo *db.AuthRepository
+    Repo *db.UserRepository
 }
 
-func NewAuthService(repo *db.AuthRepository) *AuthService {
+func NewAuthService(repo *db.UserRepository) *AuthService {
     return &AuthService{Repo: repo}
 }
 

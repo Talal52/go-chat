@@ -7,10 +7,13 @@ import (
 
 func main() {
     // Connect to MongoDB
-    dbConn := config.ConnectDB()
+    mongoDB := config.ConnectDB()
+
+    // Connect to PostgreSQL
+    postgresDB := config.ConnectPostgres()
 
     // Initialize servers
-    server.InitServers(dbConn)
+    server.InitServers(mongoDB, postgresDB)
 
     // Block forever
     select {}
