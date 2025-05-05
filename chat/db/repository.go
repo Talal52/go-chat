@@ -1,38 +1,50 @@
 package db
 
 import (
-	"database/sql"
-	"github.com/Talal52/go-chat/chat/models"
+    "context"
+    "time"
+
+    "github.com/Talal52/go-chat/chat/models"
+    "go.mongodb.org/mongo-driver/bson"
+    "go.mongodb.org/mongo-driver/mongo"
 )
 
 type ChatRepository struct {
-	DB *sql.DB
+    Collection *mongo.Collection
 }
 
-func NewChatRepository(db *sql.DB) *ChatRepository {
-	return &ChatRepository{DB: db}
+func NewChatRepository(db *mongo.Database) *ChatRepository {
+    return &ChatRepository{
+        Collection: db.Collection("messages"),
+    }
 }
 
 func (r *ChatRepository) SaveMessage(msg models.Message) error {
-	_, err := r.DB.Exec(`INSERT INTO messages (sender, content, created_at) VALUES ($1, $2, $3)`,
-		msg.Sender, msg.Content, msg.CreatedAt)
-	return err
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    _, err := r.Collection.InsertOne(ctx, msg)
+    return err
 }
 
 func (r *ChatRepository) GetMessages() ([]models.Message, error) {
-	rows, err := r.DB.Query(`SELECT sender, content, created_at FROM messages ORDER BY created_at DESC`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
 
-	var messages []models.Message
-	for rows.Next() {
-		var m models.Message
-		if err := rows.Scan(&m.Sender, &m.Content, &m.CreatedAt); err != nil {
-			return nil, err
-		}
-		messages = append(messages, m)
-	}
-	return messages, nil
+    cursor, err := r.Collection.Find(ctx, bson.M{})
+    if err != nil {
+        return nil, err
+    }
+    defer cursor.Close(ctx)
+
+    var messages []models.Message
+    for cursor.Next(ctx) {
+        var msg models.Message
+        if err := cursor.Decode(&msg); err != nil {
+            return nil, err
+        }
+        messages = append(messages, msg)
+    }
+
+    return messages, nil
 }

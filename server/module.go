@@ -1,12 +1,15 @@
 package server
 
 import (
-	"database/sql"
-	"github.com/Talal52/go-chat/chat"
+    "github.com/Talal52/go-chat/chat"
+    "go.mongodb.org/mongo-driver/mongo"
 )
 
-func InitServers(dbConn *sql.DB) {
-	handler := chat.InitChatModule(dbConn)
-	go StartHTTPServer(handler)
-	go StartTCPServer() // You can pass ChatHandler or ChatService
+func InitServers(dbConn *mongo.Database) {
+    // Initialize the Chat Module
+    handler := chat.InitChatModule(dbConn)
+
+    // Start Servers
+    go StartHTTPServer(handler)
+    go StartTCPServer(handler.Service)
 }

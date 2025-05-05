@@ -1,21 +1,17 @@
 package server
 
 import (
-	"github.com/Talal52/go-chat/chat/api"
-	"log"
-	"net/http"
+    "github.com/Talal52/go-chat/chat/api"
+    "log"
+    "net/http"
 )
 
-func StartHTTPServer(handler *api.ChatHandler) {
-	http.HandleFunc("/messages", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			handler.GetMessages(w, r)
-		} else if r.Method == http.MethodPost {
-			handler.PostMessage(w, r)
-		} else {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
-	log.Println("HTTP server running on :8000")
-	http.ListenAndServe(":8000", nil)
+func StartHTTPServer(chatHandler *api.ChatHandler, authHandler *api.AuthHandler) {
+    http.HandleFunc("/messages", chatHandler.GetMessages)
+    http.HandleFunc("/send", chatHandler.PostMessage)
+    http.HandleFunc("/signup", authHandler.Signup)
+    http.HandleFunc("/login", authHandler.Login)
+
+    log.Println("HTTP server started on :8080")
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }

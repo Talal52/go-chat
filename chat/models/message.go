@@ -3,7 +3,8 @@ package models
 import "time"
 
 type Message struct {
-	Sender    string    `json:"sender"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
+    ID        string    `bson:"_id,omitempty" json:"id"`
+    Username  string    `bson:"username" json:"username"`
+    Content   string    `bson:"content" json:"content"`
+    CreatedAt time.Time `bson:"created_at" json:"created_at"`
 }

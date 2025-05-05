@@ -1,13 +1,17 @@
 package main
 
 import (
-	"github.com/Talal52/go-chat/config"
-	"github.com/Talal52/go-chat/server"
+    "github.com/Talal52/go-chat/config"
+    "github.com/Talal52/go-chat/server"
 )
 
 func main() {
-	dbConn := config.ConnectDB()
-	server.InitServers(dbConn)
+    // Connect to MongoDB
+    dbConn := config.ConnectDB()
 
-	select {} // block forever
+    // Initialize servers
+    server.InitServers(dbConn)
+
+    // Block forever
+    select {}
 }

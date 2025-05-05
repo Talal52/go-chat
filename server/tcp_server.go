@@ -7,14 +7,16 @@ import (
     "net"
     "strings"
     "sync"
-	"github.com/Talal52/go-chat/config"
-	)
+    "time"
 
-var clients = make(map[net.Conn]string) // connection -> username
+    "github.com/Talal52/go-chat/chat/models"
+    "github.com/Talal52/go-chat/chat/service"
+)
+
+var clients = make(map[net.Conn]string)
 var clientsMutex sync.Mutex
-var db = config.ConnectDB() // Initialize DB connection
 
-func StartTCPServer() {
+func StartTCPServer(chatService *service.ChatService) {
     listener, err := net.Listen("tcp", ":9000")
     if err != nil {
         log.Fatal("TCP Server error:", err)
@@ -28,11 +30,11 @@ func StartTCPServer() {
             log.Println("Connection error:", err)
             continue
         }
-        go handleConnection(conn)
+        go handleConnection(conn, chatService)
     }
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, chatService *service.ChatService) {
     defer conn.Close()
 
     conn.Write([]byte("Enter your name: "))
@@ -57,7 +59,16 @@ func handleConnection(conn net.Conn) {
             continue
         }
 
-        SaveMessage(name, msg) // Save in DB
+        // Save the message using the service
+        err = chatService.SaveMessage(models.Message{
+            Username:  name,
+            Content:   msg,
+            CreatedAt: time.Now(),
+        })
+        if err != nil {
+            log.Println("Error saving message:", err)
+        }
+
         broadcast(fmt.Sprintf("%s: %s\n", name, msg), conn)
     }
 
@@ -66,13 +77,6 @@ func handleConnection(conn net.Conn) {
     clientsMutex.Unlock()
 
     broadcast(fmt.Sprintf("%s left the chat\n", name), conn)
-}
-
-func SaveMessage(username, message string) {
-    _, err := db.Exec("INSERT INTO messages (username, message) VALUES ($1, $2)", username, message)
-    if err != nil {
-        log.Println("Error saving message:", err)
-    }
 }
 
 func broadcast(message string, sender net.Conn) {
