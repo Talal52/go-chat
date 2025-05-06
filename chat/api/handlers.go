@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -23,17 +25,22 @@ func (h *ChatHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	// Extract JWT token from Authorization header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		log.Println("Authorization header missing or invalid")
+		http.Error(w, "Unauthorized: Missing or invalid Authorization header", http.StatusUnauthorized)
 		return
 	}
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
+
 	// Parse and validate the token
 	claims := &jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-		return []byte("your-secret-key"), nil // Replace with your secret key
+		secret := os.Getenv("JWT_SECRET")
+		log.Println("Using JWT_SECRET:", secret)
+		return []byte(secret), nil
 	})
 	if err != nil || !token.Valid {
+		log.Printf("Invalid token: %v", err) // Log the error
 		http.Error(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
@@ -41,13 +48,17 @@ func (h *ChatHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	// Extract the sender's username from the token claims
 	sender, ok := (*claims)["username"].(string)
 	if !ok {
+		log.Println("Invalid token claims: username not found") // Log the issue
 		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 		return
 	}
 
+	log.Println("Sender extracted from token:", sender)
+
 	// Decode the message from the request body
 	var msg models.Message
 	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
+		log.Println("Error decoding message body:", err)
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
@@ -58,10 +69,12 @@ func (h *ChatHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 
 	// Save the message using the service
 	if err := h.Service.SaveMessage(msg); err != nil {
+		log.Printf("Error saving message: %v", err) // Log the error
 		http.Error(w, "Could not save message", http.StatusInternalServerError)
 		return
 	}
 
+	log.Println("Message saved successfully")
 	w.WriteHeader(http.StatusCreated)
 }
 
