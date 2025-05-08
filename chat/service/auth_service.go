@@ -12,11 +12,13 @@ import (
 )
 
 type AuthService struct {
-	Repo *db.UserRepository
+	Repo     *db.UserRepository
+	secretKey []byte
 }
 
 func NewAuthService(repo *db.UserRepository) *AuthService {
-	return &AuthService{Repo: repo}
+	secretKey := []byte(os.Getenv("JWT_SECRET")) // Load the secret key once during initialization
+	return &AuthService{Repo: repo, secretKey: secretKey}
 }
 
 func (s *AuthService) Signup(user models.User) error {
@@ -29,9 +31,6 @@ func (s *AuthService) Signup(user models.User) error {
 }
 
 func (s *AuthService) Login(username, password string) (string, error) {
-
-	var secretKey = []byte(os.Getenv("JWT_SECRET")) // Load the secret key from the environment
-
 	user, err := s.Repo.GetUserByUsername(username)
 	if err != nil {
 		return "", err
@@ -45,5 +44,5 @@ func (s *AuthService) Login(username, password string) (string, error) {
 		"username": username,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	})
-	return token.SignedString(secretKey)
+	return token.SignedString(s.secretKey)
 }

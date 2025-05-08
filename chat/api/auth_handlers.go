@@ -2,9 +2,10 @@ package api
 
 import (
     "encoding/json"
+    "net/http"
+
     "github.com/Talal52/go-chat/chat/models"
     "github.com/Talal52/go-chat/chat/service"
-    "net/http"
 )
 
 type AuthHandler struct {
@@ -47,6 +48,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    response := map[string]string{"token": token}
     w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(map[string]string{"token": token})
+    json.NewEncoder(w).Encode(response)
 }

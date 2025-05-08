@@ -7,21 +7,21 @@ import (
 	"database/sql"
 
 	"github.com/Talal52/go-chat/chat"
-	// "github.com/Talal52/go-chat/chat/models/websocket"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func InitServers(mongoDB *mongo.Database, postgresDB *sql.DB) {
-    // Initialize Chat Module
-    chatHandler := chat.InitChatModule(mongoDB)
+	// Initialize Chat Module and WebSocket Server
+	chatHandler := chat.InitChatModule(mongoDB)
+	webSocketServer := NewWebSocketServer(chatHandler.Service)
 
-    // Initialize WebSocket Server correctly
-    webSocketServer := NewWebSocketServer(chatHandler.Service)
-    go webSocketServer.HandleMessages()
+	// Start WebSocket message handling in a separate goroutine
+	go webSocketServer.HandleMessages()
 
-    // Start HTTP Server
-    http.HandleFunc("/ws", webSocketServer.HandleConnections)
-    log.Println("WebSocket server started on :8080/ws")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	// Configure and start HTTP server for WebSocket connections
+	http.HandleFunc("/ws", webSocketServer.HandleConnections)
+	log.Println("WebSocket server started on :8080/ws")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("Failed to start HTTP server: %v", err)
+	}
 }
-

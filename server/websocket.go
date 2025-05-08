@@ -1,101 +1,109 @@
 package server
 
 import (
-    "log"
-    "net/http"
-    "sync"
-    "time"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+	"time"
 
-    "github.com/Talal52/go-chat/chat/models"
-    // wsmodel "github.com/Talal52/go-chat/chat/models/websocket" // Alias to avoid name conflict
-    "github.com/Talal52/go-chat/chat/service"
-    "github.com/gorilla/websocket"
+	"github.com/Talal52/go-chat/chat/models"
+	"github.com/golang-jwt/jwt"
+	"github.com/Talal52/go-chat/chat/service"
+	"github.com/gorilla/websocket"
 )
 
 type WebSocketServer struct {
-    Clients   map[*websocket.Conn]string // Map of WebSocket connections to usernames
-    Broadcast chan models.Message        // Channel for broadcasting messages
-    Service   *service.ChatService       // Chat service for saving messages
-    Mutex     sync.Mutex                 // Mutex to protect the Clients map
+	Clients   map[*websocket.Conn]string
+	Broadcast chan models.Message
+	Service   *service.ChatService
+	Mutex     sync.Mutex
 }
 
 var upgrader = websocket.Upgrader{
-    CheckOrigin: func(r *http.Request) bool {
-        return true // Allow all origins (you can restrict this in production)
-    },
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-// NewWebSocketServer initializes a new WebSocket server
 func NewWebSocketServer(service *service.ChatService) *WebSocketServer {
-    return &WebSocketServer{
-        Clients:   make(map[*websocket.Conn]string),
-        Broadcast: make(chan models.Message),
-        Service:   service,
-    }
+	return &WebSocketServer{
+		Clients:   make(map[*websocket.Conn]string),
+		Broadcast: make(chan models.Message),
+		Service:   service,
+	}
 }
 
-// HandleConnections handles incoming WebSocket connections
 func (server *WebSocketServer) HandleConnections(w http.ResponseWriter, r *http.Request) {
-    conn, err := upgrader.Upgrade(w, r, nil)
-    if err != nil {
-        log.Println("Error upgrading connection:", err)
-        return
-    }
-    defer conn.Close()
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Error upgrading connection:", err)
+		return
+	}
+	defer conn.Close()
 
-    var username string
-    err = conn.ReadJSON(&username)
-    if err != nil {
-        log.Println("Error reading username:", err)
-        return
-    }
+	var tokenString string
+	if err := conn.ReadJSON(&tokenString); err != nil {
+		log.Println("Error reading token:", err)
+		return
+	}
 
-    server.Mutex.Lock()
-    server.Clients[conn] = username
-    server.Mutex.Unlock()
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+	if err != nil || !token.Valid {
+		log.Println("Invalid token:", err)
+		return
+	}
 
-    log.Printf("User %s connected", username)
+	username, ok := claims["username"].(string)
+	if !ok {
+		log.Println("Invalid token claims: username not found")
+		return
+	}
 
-    for {
-        var msg models.Message
-        err := conn.ReadJSON(&msg)
-        if err != nil {
-            log.Printf("Error reading message from %s: %v", username, err)
-            break
-        }
+	server.Mutex.Lock()
+	server.Clients[conn] = username
+	server.Mutex.Unlock()
 
-        msg.Sender = username
-        msg.CreatedAt = time.Now()
+	log.Printf("User %s connected", username)
 
-        if err := server.Service.SaveMessage(msg); err != nil {
-            log.Printf("Error saving message: %v", err)
-            continue
-        }
+	for {
+		var msg models.Message
+		if err := conn.ReadJSON(&msg); err != nil {
+			log.Printf("Error reading message from %s: %v", username, err)
+			break
+		}
 
-        server.Broadcast <- msg
-    }
+		msg.Sender = username
+		msg.CreatedAt = time.Now()
 
-    server.Mutex.Lock()
-    delete(server.Clients, conn)
-    server.Mutex.Unlock()
+		if err := server.Service.SaveMessage(msg); err != nil {
+			log.Printf("Error saving message: %v", err)
+			continue
+		}
 
-    log.Printf("User %s disconnected", username)
+		server.Broadcast <- msg
+	}
+
+	server.Mutex.Lock()
+	delete(server.Clients, conn)
+	server.Mutex.Unlock()
+
+	log.Printf("User %s disconnected", username)
 }
 
-// HandleMessages handles broadcasting messages to all connected clients
 func (server *WebSocketServer) HandleMessages() {
-    for {
-        msg := <-server.Broadcast
-
-        server.Mutex.Lock()
-        for conn := range server.Clients {
-            err := conn.WriteJSON(msg)
-            if err != nil {
-                log.Printf("Error sending message to %s: %v", server.Clients[conn], err)
-                conn.Close()
-                delete(server.Clients, conn)
-            }
-        }
-        server.Mutex.Unlock()
-    }
+	for msg := range server.Broadcast {
+		server.Mutex.Lock()
+		for conn, username := range server.Clients {
+			if err := conn.WriteJSON(msg); err != nil {
+				log.Printf("Error sending message to %s: %v", username, err)
+				conn.Close()
+				delete(server.Clients, conn)
+			}
+		}
+		server.Mutex.Unlock()
+	}
 }

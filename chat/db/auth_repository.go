@@ -7,9 +7,6 @@ import (
 	"github.com/Talal52/go-chat/chat/models"
 )
 
-type AuthRepository struct {
-	DB *sql.DB
-}
 type UserRepository struct {
 	DB *sql.DB
 }
@@ -26,8 +23,11 @@ func (r *UserRepository) CreateUser(user models.User) error {
 func (r *UserRepository) GetUserByUsername(username string) (*models.User, error) {
 	var user models.User
 	err := r.DB.QueryRow("SELECT id, username, password FROM users WHERE username = $1", username).Scan(&user.ID, &user.Username, &user.Password)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("user not found")
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
 	}
-	return &user, err
+	return &user, nil
 }

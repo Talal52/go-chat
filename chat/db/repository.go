@@ -38,12 +38,8 @@ func (r *ChatRepository) GetMessages() ([]models.Message, error) {
     defer cursor.Close(ctx)
 
     var messages []models.Message
-    for cursor.Next(ctx) {
-        var msg models.Message
-        if err := cursor.Decode(&msg); err != nil {
-            return nil, err
-        }
-        messages = append(messages, msg)
+    if err := cursor.All(ctx, &messages); err != nil {
+        return nil, err
     }
 
     return messages, nil

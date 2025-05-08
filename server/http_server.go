@@ -7,10 +7,16 @@ import (
 )
 
 func StartHTTPServer(chatHandler *api.ChatHandler, authHandler *api.AuthHandler) {
-    http.HandleFunc("/messages", chatHandler.GetMessages)
-    http.HandleFunc("/send", chatHandler.PostMessage)
-    http.HandleFunc("/signup", authHandler.Signup)
-    http.HandleFunc("/login", authHandler.Login)
+    routes := map[string]http.HandlerFunc{
+        "/messages": chatHandler.GetMessages,
+        "/send":     chatHandler.PostMessage,
+        "/signup":   authHandler.Signup,
+        "/login":    authHandler.Login,
+    }
+
+    for route, handler := range routes {
+        http.HandleFunc(route, handler)
+    }
 
     log.Println("HTTP server started on :8080")
     log.Fatal(http.ListenAndServe(":8080", nil))

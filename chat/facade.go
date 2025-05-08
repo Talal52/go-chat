@@ -1,29 +1,29 @@
 package chat
 
 import (
-    "go.mongodb.org/mongo-driver/mongo"
-    "github.com/Talal52/go-chat/chat/api"
-    chat_db "github.com/Talal52/go-chat/chat/db"
-    "github.com/Talal52/go-chat/chat/service"
+	"github.com/Talal52/go-chat/chat/api"
+	chat_db "github.com/Talal52/go-chat/chat/db"
+	"github.com/Talal52/go-chat/chat/service"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type ChatFacade struct {
-    Handler *api.ChatHandler
-    Service *service.ChatService
+	Handler *api.ChatHandler
+	Service *service.ChatService
 }
 
 func NewChatFacade(db *mongo.Database) *ChatFacade {
-    // Initialize repository
-    repo := chat_db.NewChatRepository(db)
+	// Initialize repository
+	repo := chat_db.NewChatRepository(db)
 
-    // Initialize service
-    svc := service.NewChatService(repo)
+	// Initialize service
+	svc := service.NewChatService(repo)
 
-    // Initialize API handler
-    handler := api.NewChatHandler(svc)
+	// Initialize API handler
+	handler := api.NewChatHandler(svc)
 
-    return &ChatFacade{
-        Handler: handler,
-        Service: svc,
-    }
+	return &ChatFacade{
+		Handler: handler,
+		Service: svc,
+	}
 }
