@@ -1,24 +1,28 @@
 package server
 
 import (
-    "github.com/Talal52/go-chat/chat"
-    "github.com/Talal52/go-chat/chat/api"
-    "github.com/Talal52/go-chat/chat/db"
-    "github.com/Talal52/go-chat/chat/service"
-    "go.mongodb.org/mongo-driver/mongo"
-    "database/sql"
+	"log"
+	"net/http"
+
+	"database/sql"
+
+	"github.com/Talal52/go-chat/chat"
+	"github.com/Talal52/go-chat/chat/models/websocket"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func InitServers(mongoDB *mongo.Database, postgresDB *sql.DB) {
-    // Initialize Chat Module
-    chatHandler := chat.InitChatModule(mongoDB)
+	// Initialize Chat Module
+	chatHandler := chat.InitChatModule(mongoDB)
 
-    // Initialize User Module
-    userRepo := db.NewUserRepository(postgresDB)
-    authService := service.NewAuthService(userRepo)
-    authHandler := api.NewAuthHandler(authService)
+	// Initialize WebSocket Server
+	webSocketServer := NewWebSocketServer(&websocket.WebSocketServer{
+		Service: chatHandler.Service,
+	})
+	go webSocketServer.HandleMessages()
 
-    // Start Servers
-    go StartHTTPServer(chatHandler, authHandler) // Pass both handlers
-    go StartTCPServer(chatHandler.Service)
+	// Start HTTP Server
+	http.HandleFunc("/ws", webSocketServer.HandleConnections) // WebSocket endpoint
+	log.Println("WebSocket server started on :8080/ws")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
