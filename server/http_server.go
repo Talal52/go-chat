@@ -10,8 +10,8 @@ func StartHTTPServer(chatHandler *api.ChatHandler, authHandler *api.AuthHandler)
     routes := map[string]http.HandlerFunc{
         "/messages": chatHandler.GetMessages,
         "/send":     chatHandler.PostMessage,
-        "/signup":   authHandler.Signup,
-        "/login":    authHandler.Login,
+        "/signup":   authHandler.Signup, 
+        "/login":    authHandler.Login, 
     }
 
     for route, handler := range routes {
