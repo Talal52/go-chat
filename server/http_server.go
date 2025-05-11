@@ -1,23 +1,26 @@
 package server
 
 import (
-    "github.com/Talal52/go-chat/chat/api"
     "log"
-    "net/http"
+
+    "github.com/gin-gonic/gin"
+    "github.com/Talal52/go-chat/chat/api"
 )
 
 func StartHTTPServer(chatHandler *api.ChatHandler, authHandler *api.AuthHandler) {
-    routes := map[string]http.HandlerFunc{
-        "/messages": chatHandler.GetMessages,
-        "/send":     chatHandler.PostMessage,
-        "/signup":   authHandler.Signup, 
-        "/login":    authHandler.Login, 
-    }
+    router := gin.Default()
 
-    for route, handler := range routes {
-        http.HandleFunc(route, handler)
+    // ✅ Serve static files under /static instead of /
+    router.Static("/static", "./frontend")
+
+    // ✅ Group API routes under /api
+    apiGroup := router.Group("/api")
+    {
+        apiGroup.POST("/signup", authHandler.SignupGin)
+        apiGroup.POST("/login", authHandler.LoginGin)
+        apiGroup.GET("/messages", chatHandler.GetMessagesGin)
     }
 
     log.Println("HTTP server started on :8080")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    router.Run(":8080")
 }
