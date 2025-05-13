@@ -6,15 +6,12 @@ import (
 )
 
 func main() {
-	// Connect to MongoDB
 	mongoDB := config.ConnectDB()
 
-	// Connect to PostgreSQL
 	postgresDB := config.ConnectPostgres()
 
 	// Initialize servers
 	server.InitServers(mongoDB, postgresDB)
 
-	// Block forever
 	select {}
 }

@@ -12,19 +12,15 @@ import (
 )
 
 func InitServers(mongoDB *mongo.Database, postgresDB *sql.DB) {
-    // Initialize repositories
     userRepo := db.NewUserRepository(postgresDB)
     chatRepo := db.NewChatRepository(mongoDB)
 
-    // Initialize services
     authService := service.NewAuthService(userRepo)
     chatService := service.NewChatService(chatRepo)
 
-    // Initialize handlers
     authHandler := api.NewAuthHandler(authService)
     chatHandler := api.NewChatHandler(chatService)
 
-    // Start HTTP server
     go StartHTTPServer(chatHandler, authHandler)
 
     // Start WebSocket server

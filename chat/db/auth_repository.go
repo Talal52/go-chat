@@ -1,10 +1,13 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
 	"github.com/Talal52/go-chat/chat/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserRepository struct {
@@ -30,4 +33,22 @@ func (r *UserRepository) GetUserByUsername(username string) (*models.User, error
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *ChatRepository) GetMessagesByGroupID(groupID primitive.ObjectID) ([]models.Message, error) {
+	ctx := context.TODO()
+	filter := bson.M{"group_id": groupID}
+
+	cursor, err := r.Collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var messages []models.Message
+	if err := cursor.All(ctx, &messages); err != nil {
+		return nil, err
+	}
+
+	return messages, nil
 }

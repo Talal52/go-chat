@@ -9,8 +9,8 @@ import (
 )
 
 type WebSocketServer struct {
-	Clients   map[*websocket.Conn]string // Map of WebSocket connections to usernames
-	Broadcast chan models.Message           // Channel for broadcasting messages
-	Mutex     sync.Mutex                 // Mutex to protect the Clients map
-	Service   *service.ChatService       // Chat service for saving messages
+	Clients   map[*websocket.Conn]string 
+	Broadcast chan models.Message          
+	Mutex     sync.Mutex                 
+	Service   *service.ChatService      
 }

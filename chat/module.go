@@ -8,12 +8,9 @@ import (
 )
 
 func InitChatModule(db *mongo.Database) *api.ChatHandler {
-	// Initialize the repository
 	repo := chat_db.NewChatRepository(db)
 
-	// Initialize the service
 	svc := service.NewChatService(repo)
 
-	// Return the API handler
 	return api.NewChatHandler(svc)
 }

@@ -13,13 +13,10 @@ type ChatFacade struct {
 }
 
 func NewChatFacade(db *mongo.Database) *ChatFacade {
-	// Initialize repository
 	repo := chat_db.NewChatRepository(db)
 
-	// Initialize service
 	svc := service.NewChatService(repo)
 
-	// Initialize API handler
 	handler := api.NewChatHandler(svc)
 
 	return &ChatFacade{
