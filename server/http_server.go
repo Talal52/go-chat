@@ -17,7 +17,7 @@ func StartHTTPServer(chatHandler *api.ChatHandler, authHandler *api.AuthHandler)
         apiGroup.POST("/signup", authHandler.SignupGin)
         apiGroup.POST("/login", authHandler.LoginGin)
         apiGroup.GET("/messages", chatHandler.GetMessagesGin)
-        apiGroup.GET("/group/messages",chatHandler.GetGroupMessages)
+        apiGroup.GET("/group/messages?group_id=",chatHandler.GetGroupMessages)
     }
 
     log.Println("HTTP server started on :8080")

@@ -102,3 +102,4 @@ func parseToken(tokenString string) (string, error) {
 	}
 	return sender, nil
 }
+
