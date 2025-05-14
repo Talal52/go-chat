@@ -1,17 +1,35 @@
 package main
 
 import (
-	"github.com/Talal52/go-chat/config"
-	"github.com/Talal52/go-chat/server"
+    "log"
+    "net/http"
+
+    "github.com/Talal52/go-chat/chat/api"
+    "github.com/Talal52/go-chat/chat/service"
+    "github.com/Talal52/go-chat/server"
+    "github.com/Talal52/go-chat/server/websocket"
 )
 
 func main() {
-	mongoDB := config.ConnectDB()
+    // Initialize services
+    chatService := service.NewChatService()
+    authService := service.NewAuthService() // Ensure AuthService is initialized
 
-	postgresDB := config.ConnectPostgres()
+    // Initialize handlers
+    chatHandler := &api.ChatHandler{Service: chatService}
+    authHandler := &api.AuthHandler{Service: authService}
 
-	// Initialize servers
-	server.InitServers(mongoDB, postgresDB)
+    // Start HTTP server
+    go func() {
+        log.Println("Starting HTTP server...")
+        server.StartHTTPServer(chatHandler, authHandler)
+    }()
 
-	select {}
+    // Start WebSocket server
+    wsServer := websocket.NewWebSocketModule(chatService)
+    go wsServer.HandleMessages()
+
+    log.Println("Starting WebSocket server on :8081...")
+    http.HandleFunc("/ws", websocket.WebSocketHandler(wsServer))
+    log.Fatal(http.ListenAndServe(":8081", nil))
 }
