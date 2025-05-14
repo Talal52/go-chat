@@ -5,27 +5,36 @@ import (
     "net/http"
 
     "github.com/Talal52/go-chat/chat/api"
+    "github.com/Talal52/go-chat/chat/db"
     "github.com/Talal52/go-chat/chat/service"
+    "github.com/Talal52/go-chat/config"
     "github.com/Talal52/go-chat/server"
     "github.com/Talal52/go-chat/server/websocket"
 )
 
 func main() {
+    postgresDB := config.ConnectPostgres()
+    defer postgresDB.Close()
+
+    mongoDB := config.ConnectDB()
+
+    // Initialize repositories
+    userRepo := db.NewUserRepository(postgresDB)
+    chatRepo := db.NewChatRepository(mongoDB)
+
     // Initialize services
-    chatService := service.NewChatService()
-    authService := service.NewAuthService() // Ensure AuthService is initialized
+    authService := service.NewAuthService(userRepo)
+    chatService := service.NewChatService(chatRepo)
 
     // Initialize handlers
     chatHandler := &api.ChatHandler{Service: chatService}
     authHandler := &api.AuthHandler{Service: authService}
 
-    // Start HTTP server
     go func() {
         log.Println("Starting HTTP server...")
         server.StartHTTPServer(chatHandler, authHandler)
     }()
 
-    // Start WebSocket server
     wsServer := websocket.NewWebSocketModule(chatService)
     go wsServer.HandleMessages()
 
