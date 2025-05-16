@@ -54,3 +54,23 @@ func ConnectDB() *mongo.Database {
 	log.Println("Connected to MongoDB")
 	return client.Database(dbName)
 }
+type Config struct {
+	HTTPPort     string
+	WebSocketURL string
+	JWTSecret    string
+}
+
+func LoadConfig() *Config {
+	return &Config{
+		HTTPPort:     getEnv("HTTP_PORT", "8082"),
+		WebSocketURL: getEnv("WS_URL", "ws://localhost:8081/ws"),
+		JWTSecret:    getEnv("JWT_SECRET", "mysecretkey"),
+	}
+}
+
+func getEnv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
