@@ -12,7 +12,7 @@ import (
 )
 
 type AuthService struct {
-	Repo     *db.UserRepository
+	Repo      *db.UserRepository
 	secretKey []byte
 }
 
@@ -41,8 +41,17 @@ func (s *AuthService) Login(username, password string) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id":  user.ID,
 		"username": username,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	})
 	return token.SignedString(s.secretKey)
+}
+func (s *AuthService) ValidateToken(tokenStr string) (*jwt.Token, error) {
+	return jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return s.secretKey, nil
+	})
 }
