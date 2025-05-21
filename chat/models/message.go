@@ -7,9 +7,10 @@ import (
 )
 
 type Message struct {
-	Sender    string              `json:"sender"`
-	Receiver  string              `json:"receiver"`
-	Content   string              `json:"content"`
-	CreatedAt time.Time           `json:"created_at"`
-	GroupID   *primitive.ObjectID `json:"group_id,omitempty" bson:"group_id,omitempty"`
+	ID         primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Sender     string             `json:"sender" bson:"sender"`
+	Content    string             `json:"message" bson:"content"`
+	ReceiverId int                `json:"receiver_id" bson:"receiver_id"`
+	GroupID    primitive.ObjectID `json:"group_id,omitempty" bson:"group_id,omitempty"`
+	CreatedAt  time.Time          `json:"created_at" bson:"created_at"`
 }

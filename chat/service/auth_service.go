@@ -1,57 +1,57 @@
 package service
 
 import (
-	"errors"
-	"os"
+	"log"
 	"time"
 
 	"github.com/Talal52/go-chat/chat/db"
-	"github.com/Talal52/go-chat/chat/models"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
-	Repo      *db.UserRepository
-	secretKey []byte
+	Repo *db.UserRepository
 }
 
 func NewAuthService(repo *db.UserRepository) *AuthService {
-	secretKey := []byte(os.Getenv("JWT_SECRET")) // Load the secret key once during initialization
-	return &AuthService{Repo: repo, secretKey: secretKey}
+	return &AuthService{Repo: repo}
 }
 
-func (s *AuthService) Signup(user models.User) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+func (s *AuthService) Signup(email, password string) error {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
+		log.Println("Error hashing password:", err)
 		return err
 	}
-	user.Password = string(hashedPassword)
+
+	user := db.User{Email: email, Password: string(hashedPassword)} // Adjust User struct if needed
 	return s.Repo.CreateUser(user)
 }
 
-func (s *AuthService) Login(username, password string) (string, error) {
-	user, err := s.Repo.GetUserByUsername(username)
+func (s *AuthService) Login(email, password string) (string, error) {
+	user, err := s.Repo.GetUserByUsername(email) // Adjust to GetUserByEmail if renamed
 	if err != nil {
+		log.Println("User not found:", err)
 		return "", err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", errors.New("invalid credentials")
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		log.Println("Invalid password:", err)
+		return "", err
 	}
 
+	jwtSecret := "mysecretkey" // Replace with os.Getenv("JWT_SECRET") if set
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id":  user.ID,
-		"username": username,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+		"email": user.Email,
+		"exp":   time.Now().Add(time.Hour * 24).Unix(),
 	})
-	return token.SignedString(s.secretKey)
-}
-func (s *AuthService) ValidateToken(tokenStr string) (*jwt.Token, error) {
-	return jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
-		}
-		return s.secretKey, nil
-	})
+
+	tokenString, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		log.Println("Error generating token:", err)
+		return "", err
+	}
+
+	return tokenString, nil
 }
