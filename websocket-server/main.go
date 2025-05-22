@@ -89,8 +89,7 @@ func writePump(client *Client) {
 }
 
 func parseReceiverID(message []byte) string {
-	// You can decode message JSON and return receiverID
-	// For demo, hardcode or simple parse (needs improvement)
+
 	return "receiverUserID"
 }
 

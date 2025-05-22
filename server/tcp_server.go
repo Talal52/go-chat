@@ -70,9 +70,9 @@ func handleConnection(conn net.Conn, chatService *service.ChatService) {
 		}
 
 		if err := chatService.SaveMessage(models.Message{
-			Sender:    name,
-			Content:   msg,
-			CreatedAt: time.Now(),
+			SenderID:  name,
+			Message:   msg,
+			Timestamp: time.Now(),
 		}); err != nil {
 			log.Printf("Error saving message: %v", err)
 		}
