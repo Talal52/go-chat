@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,12 +41,11 @@ func (h *ChatHandler) PostMessageGin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-
 	msg := models.Message{
-		Sender:     sender.(string),
-		Content:    payload.Message,
-		ReceiverId: payload.ReceiverId,
-		CreatedAt:  time.Now(),
+		SenderID:   sender.(string),
+		Message:    payload.Message,
+		ReceiverID: strconv.Itoa(payload.ReceiverId), // Convert int to string
+		Timestamp:  time.Now(),
 	}
 
 	if err := h.Service.SaveMessage(msg); err != nil {
