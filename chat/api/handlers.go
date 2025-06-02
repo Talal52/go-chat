@@ -127,3 +127,11 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
+func (h *ChatHandler) GetUsers(c *gin.Context) {
+    users, err := h.Service.GetAllUsers()
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+    c.JSON(http.StatusOK, users)
+}
