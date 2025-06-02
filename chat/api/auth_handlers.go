@@ -1,10 +1,14 @@
 package api
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/Talal52/go-chat/chat/service"
+	"github.com/golang-jwt/jwt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -61,4 +65,23 @@ func (h *AuthHandler) LoginGin(c *gin.Context) {
 		"userId": user.ID,
 		"token":  token,
 	})
+}
+
+func GenerateJWT(userID int) (string, error) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return "", errors.New("JWT_SECRET not set")
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": userID,
+		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }
