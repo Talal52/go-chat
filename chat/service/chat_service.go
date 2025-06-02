@@ -55,7 +55,6 @@ func (s *ChatService) GetAllUsers() ([]models.User, error) {
         users = append(users, models.User{
             ID:    dbUser.ID,
             Email: dbUser.Email,
-            // Add other fields as needed
         })
     }
     return users, nil
