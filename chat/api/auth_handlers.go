@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/Talal52/go-chat/chat/service"
-	"github.com/golang-jwt/jwt"
-
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 )
 
 type AuthHandler struct {
