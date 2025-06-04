@@ -35,7 +35,7 @@ func (s *AuthService) Signup(email, password string) error {
 }
 
 func (s *AuthService) Login(email, password string) (string, error) {
-	user, err := s.Repo.GetUserByUsername(email) // Adjust to GetUserByEmail if renamed
+	user, err := s.Repo.GetUserByUsername(email)
 	if err != nil {
 		log.Println("User not found:", err)
 		return "", err
