@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Talal52/go-chat/chat/models"
 	"github.com/Talal52/go-chat/chat/service"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -54,7 +55,7 @@ func (h *AuthHandler) LoginGin(c *gin.Context) {
 		return
 	}
 
-	token, err := GenerateJWT(user.ID)
+	token, err := GenerateJWT(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -66,15 +67,16 @@ func (h *AuthHandler) LoginGin(c *gin.Context) {
 	})
 }
 
-func GenerateJWT(userID int) (string, error) {
+func GenerateJWT(user *models.User) (string, error) {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		return "", errors.New("JWT_SECRET not set")
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userId": userID,
+		"userId": user.ID,
 		"exp":    time.Now().Add(time.Hour * 24).Unix(),
+		"email":  user.Email,
 	})
 
 	tokenString, err := token.SignedString([]byte(jwtSecret))
