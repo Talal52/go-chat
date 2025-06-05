@@ -56,6 +56,7 @@ func main() {
 	{
 		chatRoutes.GET("/messages", chatHandler.GetMessagesGin)
 		chatRoutes.POST("/send-message", chatHandler.PostMessageGin)
+		chatRoutes.GET("/users", chatHandler.GetUsers)
 	}
 
 	// Start HTTP server

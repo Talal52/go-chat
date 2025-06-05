@@ -7,6 +7,13 @@ export default function ChatBox() {
   const [newMsg, setNewMsg] = useState('');
   const [receiverId, setReceiverId] = useState('');
   const ws = useRef(null);
+  const [users, setUsers] = useState([]);
+
+useEffect(() => {
+  axiosInstance.get('/api/users').then((response) => {
+    setUsers(response.data);
+  });
+}, []);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -84,6 +91,15 @@ export default function ChatBox() {
   return (
     <div>
       <h3>Send Message</h3>
+      <select
+      value={receiverId}
+      onChange={(e) => setReceiverId(e.target.value)}
+    >
+      <option value="">Select a user</option>
+      {users.map((user) => (
+        <option key={user.id} value={user.id}>{user.email}</option>
+      ))}
+    </select>
       <input
         placeholder="Receiver ID"
         value={receiverId}

@@ -11,6 +11,7 @@ import (
 
 type ChatService struct {
 	Repo *db.ChatRepository
+	UserRepo *db.UserRepository
 }
 
 func NewChatService(repo *db.ChatRepository) *ChatService {
@@ -42,4 +43,19 @@ func (s *ChatService) SaveMessage(msg models.Message) error {
 
 func (s *ChatService) GetMessagesByGroupID(groupID primitive.ObjectID) ([]models.Message, error) {
 	return s.Repo.GetMessagesByGroupID(groupID)
+}
+
+func (s *ChatService) GetAllUsers() ([]models.User, error) {
+    dbUsers, err := s.UserRepo.GetAllUsers()
+    if err != nil {
+        return nil, err
+    }
+    var users []models.User
+    for _, dbUser := range dbUsers {
+        users = append(users, models.User{
+            ID:    dbUser.ID,
+            Email: dbUser.Email,
+        })
+    }
+    return users, nil
 }

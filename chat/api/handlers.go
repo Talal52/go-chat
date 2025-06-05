@@ -91,6 +91,7 @@ func extractToken(authHeader string) (string, error) {
 }
 
 func parseToken(tokenString string) (string, error) {
+
 	claims := &jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
@@ -126,4 +127,12 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("sender", sender)
 		c.Next()
 	}
+}
+func (h *ChatHandler) GetUsers(c *gin.Context) {
+	users, err := h.Service.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, users)
 }
