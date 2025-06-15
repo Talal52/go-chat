@@ -16,6 +16,23 @@ type User struct {
 	Password string
 }
 
+func (r *UserRepository) GetAllUsers() ([]User, error) {
+    rows, err := r.DB.Query("SELECT id, email FROM users")
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var users []User
+    for rows.Next() {
+        var user User
+        if err := rows.Scan(&user.ID, &user.Email); err != nil {
+            return nil, err
+        }
+        users = append(users, user)
+    }
+    return users, rows.Err()
+}
 
 type UserRepository struct {
 	DB *sql.DB
@@ -58,4 +75,16 @@ func (r *ChatRepository) GetMessagesByGroupID(groupID primitive.ObjectID) ([]mod
 	}
 
 	return messages, nil
+}
+
+func (r *UserRepository) GetUserByEmail(email string) (*User, error) {
+    var user User
+    err := r.DB.QueryRow("SELECT id, email, password FROM users WHERE email = $1", email).Scan(&user.ID, &user.Email, &user.Password)
+    if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+	return &user, nil
 }
