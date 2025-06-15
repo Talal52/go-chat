@@ -8,12 +8,13 @@ export default function ChatBox() {
   const [receiverId, setReceiverId] = useState('');
   const ws = useRef(null);
   const [users, setUsers] = useState([]);
+  const [receivedMessages, setReceivedMessages] = useState([]);
 
-useEffect(() => {
-  axiosInstance.get('/api/users').then((response) => {
-    setUsers(response.data);
-  });
-}, []);
+  useEffect(() => {
+    axiosInstance.get('/api/users').then((response) => {
+      setUsers(response.data);
+    });
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -29,7 +30,24 @@ useEffect(() => {
     ws.current.onmessage = (event) => {
       const receivedMessage = JSON.parse(event.data);
       console.log('WebSocket message received:', receivedMessage);
-      setMessages((prev) => [...prev, receivedMessage]);
+    
+      setMessages((prevMessages) => {
+        if (prevMessages.find((msg) => msg.id === receivedMessage.id)) {
+          return prevMessages;
+        }
+        return [...prevMessages, receivedMessage];
+      });
+    
+      setReceivedMessages((prevMessages) => {
+        let updatedMessages = prevMessages;
+        if (!prevMessages.find((msg) => msg.id === receivedMessage.id)) {
+          if (receivedMessage.receiver_id === parseInt(localStorage.getItem('userId'))) {
+            updatedMessages = [...prevMessages, receivedMessage];
+          }
+        }
+        console.log('Updated received messages:', updatedMessages);
+        return updatedMessages;
+      });
     };
 
     ws.current.onerror = (error) => {
@@ -66,23 +84,29 @@ useEffect(() => {
 
   const handleSend = async () => {
     if (newMsg.trim() === '' || receiverId.trim() === '') return;
-
+  
     const msgPayload = {
       receiver_id: parseInt(receiverId),
       message: newMsg,
     };
     console.log('Sending message:', msgPayload);
-
+  
     try {
       await axiosInstance.post('/api/send-message', msgPayload, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
       });
-
+  
       const senderId = localStorage.getItem('userId') || 'Unknown';
-      setMessages((prev) => [...prev, { ...msgPayload, sender_id: senderId }]);
+      const newMessage = { ...msgPayload, sender_id: senderId };
+      setMessages((prev) => [...prev, newMessage]);
       setNewMsg('');
+  
+      // Send the new message to the WebSocket server
+      if (ws.current) {
+        ws.current.send(JSON.stringify(newMessage));
+      }
     } catch (err) {
       console.error('Error sending message:', err);
     }
@@ -92,14 +116,14 @@ useEffect(() => {
     <div>
       <h3>Send Message</h3>
       <select
-      value={receiverId}
-      onChange={(e) => setReceiverId(e.target.value)}
-    >
-      <option value="">Select a user</option>
-      {users.map((user) => (
-        <option key={user.id} value={user.id}>{user.email}</option>
-      ))}
-    </select>
+        value={receiverId}
+        onChange={(e) => setReceiverId(e.target.value)}
+      >
+        <option value="">Select a user</option>
+        {users.map((user) => (
+          <option key={user.id} value={user.id}>{user.email}</option>
+        ))}
+      </select>
       <input
         placeholder="Receiver ID"
         value={receiverId}
@@ -115,14 +139,16 @@ useEffect(() => {
       <button onClick={handleSend}>Send</button>
 
       <hr />
-      <h3>Messages</h3>
       <div>
-        {messages.map((msg, i) => (
-          <div key={i}>
-            <strong>From {msg.sender_id} to {msg.receiver_id}:</strong> {msg.message}
-          </div>
-        ))}
+  <h3>Received Messages</h3>
+  <div>
+    {receivedMessages.map((msg, i) => (
+      <div key={i}>
+        <strong>From {msg.sender_id}:</strong> {msg.message}
       </div>
+    ))}
+  </div>
+</div>
     </div>
   );
 }
