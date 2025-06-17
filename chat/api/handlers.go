@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+func NewAuthHandler(service *service.AuthService) *AuthHandler {
+	return &AuthHandler{Service: service}
+}
+
 type ChatHandler struct {
 	Service *service.ChatService
 }
@@ -22,27 +27,26 @@ func NewChatHandler(svc *service.ChatService) *ChatHandler {
 }
 
 func (h *ChatHandler) PostMessageGin(c *gin.Context) {
-	authHeader := c.GetHeader("Authorization")
-	tokenString, err := extractToken(authHeader)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid token"})
+	sender, exists := c.Get("sender")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Sender not found"})
 		return
 	}
 
-	sender, err := parseToken(tokenString)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-		return
+	var payload struct {
+		ReceiverId int    `json:"receiver_id"`
+		Message    string `json:"message"`
 	}
-
-	var msg models.Message
-	if err := c.ShouldBindJSON(&msg); err != nil {
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-
-	msg.Sender = sender
-	msg.CreatedAt = time.Now()
+	msg := models.Message{
+		SenderID:   sender.(string),
+		Message:    payload.Message,
+		ReceiverID: strconv.Itoa(payload.ReceiverId), // Convert int to string
+		Timestamp:  time.Now(),
+	}
 
 	if err := h.Service.SaveMessage(msg); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not save message"})
@@ -86,8 +90,8 @@ func extractToken(authHeader string) (string, error) {
 	return strings.TrimPrefix(authHeader, "Bearer "), nil
 }
 
-// parseToken parses the JWT token and extracts the sender's username
 func parseToken(tokenString string) (string, error) {
+
 	claims := &jwt.MapClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
@@ -96,10 +100,39 @@ func parseToken(tokenString string) (string, error) {
 		return "", http.ErrNoCookie
 	}
 
-	sender, ok := (*claims)["username"].(string)
+	sender, ok := (*claims)["email"].(string)
 	if !ok {
 		return "", http.ErrNoCookie
 	}
 	return sender, nil
 }
 
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		tokenString, err := extractToken(authHeader)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing or invalid token"})
+			c.Abort()
+			return
+		}
+
+		sender, err := parseToken(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		c.Set("sender", sender)
+		c.Next()
+	}
+}
+func (h *ChatHandler) GetUsers(c *gin.Context) {
+	users, err := h.Service.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, users)
+}
