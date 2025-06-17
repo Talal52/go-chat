@@ -1,44 +1,49 @@
 package main
 
 import (
-    "log"
-    "net/http"
+	"context"
+	"log"
+	"net/http"
 
-    "github.com/Talal52/go-chat/chat/api"
-    "github.com/Talal52/go-chat/chat/db"
-    "github.com/Talal52/go-chat/chat/service"
-    "github.com/Talal52/go-chat/config"
-    "github.com/Talal52/go-chat/server"
-    "github.com/Talal52/go-chat/server/websocket"
+	"github.com/Talal52/go-chat/chat/api"
+	"github.com/Talal52/go-chat/chat/db"
+	"github.com/Talal52/go-chat/chat/service"
+	"github.com/Talal52/go-chat/config"
+	"github.com/Talal52/go-chat/server"
+	"github.com/Talal52/go-chat/server/websocket"
 )
 
 func main() {
-    postgresDB := config.ConnectPostgres()
-    defer postgresDB.Close()
+	cfg := config.LoadConfig()
 
-    mongoDB := config.ConnectDB()
+	postgresDB := config.ConnectPostgres(cfg.PostgresURI)
+	defer postgresDB.Close()
 
-    // Initialize repositories
-    userRepo := db.NewUserRepository(postgresDB)
-    chatRepo := db.NewChatRepository(mongoDB)
+	mongoDB := config.ConnectDB(cfg.MongoURI, cfg.DBName)
+	defer mongoDB.Client().Disconnect(context.Background())
 
-    // Initialize services
-    authService := service.NewAuthService(userRepo)
-    chatService := service.NewChatService(chatRepo)
+	userRepo := db.NewUserRepository(postgresDB)
+	chatRepo := db.NewChatRepository(mongoDB)
 
-    // Initialize handlers
-    chatHandler := &api.ChatHandler{Service: chatService}
-    authHandler := &api.AuthHandler{Service: authService}
+	authService := service.NewAuthService(userRepo)
+	chatService := service.NewChatService(chatRepo)
 
-    go func() {
-        log.Println("Starting HTTP server...")
-        server.StartHTTPServer(chatHandler, authHandler)
-    }()
+	authHandler := api.NewAuthHandler(authService)
 
-    wsServer := websocket.NewWebSocketModule(chatService)
-    go wsServer.HandleMessages()
+	go func() {
+		log.Println("Starting HTTP server on :8080...")
+		router := server.NewHTTPServer(cfg, authHandler)
+		if err := router.Run(":8080"); err != nil {
+			log.Fatal("HTTP server failed:", err)
+		}
+	}()
 
-    log.Println("Starting WebSocket server on :8081...")
-    http.HandleFunc("/ws", websocket.WebSocketHandler(wsServer))
-    log.Fatal(http.ListenAndServe(":8081", nil))
+	wsServer := websocket.NewWebSocketModule(chatService)
+	go wsServer.HandleMessages()
+
+	log.Println("Starting WebSocket server on :8081...")
+	http.HandleFunc("/ws", websocket.WebSocketHandler(wsServer))
+	if err := http.ListenAndServe(":8081", nil); err != nil {
+		log.Fatal("WebSocket server failed:", err)
+	}
 }

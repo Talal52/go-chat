@@ -7,13 +7,14 @@ import (
     "github.com/Talal52/go-chat/chat/service"
 	"github.com/gin-gonic/gin"
 )
-
 type AuthHandler struct {
 	Service *service.AuthService
 }
+
 func NewAuthHandler(service *service.AuthService) *AuthHandler {
 	return &AuthHandler{Service: service}
 }
+
 func (h *AuthHandler) SignupGin(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
