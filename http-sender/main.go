@@ -25,13 +25,10 @@ func main() {
 
 	// Initialize repositories
 	userRepo := db.NewUserRepository(postgresDB)
-	// chatRepo := db.NewChatRepository(mongoDB) // Uncomment if needed
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo)
-	// chatService := service.NewChatService(chatRepo) // Uncomment if needed
 
-	// Create authHandler
 	authHandler := api.NewAuthHandler(authService)
 
 	// Start HTTP server
