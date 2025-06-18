@@ -10,11 +10,10 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - POSTGRES_URI=${POSTGRES_URI}
       - MONGO_URI=${MONGO_URI}
+      - WS_URL=0.0.0.0:8081/ws
     depends_on:
       - postgres
       - mongodb
-    volumes:
-      - ./go-chat:/app
     networks:
       - go-chat-network
 
